@@ -27,7 +27,7 @@ void bearbeiten(unsigned char *daten, int groesse) {
     }
 
     // Benutzer gibt neuen Byte-Wert im HEX-Format ein (z. B. 0x41 für 'A')
-    printf("Neuer HEX-Wert für Position %d (z. B. 41 für 'A'): 0x", pos);
+    printf("Neuer HEX-Wert für Position %d (z.B. 41 für 'A'): 0x", pos);
     scanf("%x", &wert);
 
     // Neuer Wert wird im Speicher (im Array) gesetzt
@@ -41,12 +41,12 @@ void bearbeiten(unsigned char *daten, int groesse) {
 int main(int argc, char *argv[]) {
     // Prüfen, ob ein Dateiname übergeben wurde
     if (argc < 2) {
-        printf("Dateiname fehlt. Beispiel: ./editor test.txt\n");
+        printf("./editor test.txt\n");
         return 1;
     }
 
-    // Datei im Lese-/Schreibmodus öffnen ("rb+" = read binary + write)
-    FILE *datei = fopen(argv[1], "rb+");
+    // Datei im Lese-/Schreibmodus öffnen 
+    FILE *datei = fopen(argv[1], "read_binary_write");
     if (!datei) {
         printf("Datei konnte nicht geöffnet werden.\n");
         return 1;
