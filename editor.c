@@ -1,99 +1,109 @@
-#include <stdio.h>   // für printf, scanf, FILE-Funktionen
-#include <stdlib.h>  // für Speicherverwaltung (malloc, free)
-#include <ctype.h>   // für isprint() – um druckbare Zeichen zu erkennen
+#include <stdio.h>    // Ein- und Ausgabefunktionen wie printf, scanf
+#include <stdlib.h>   // Speicherfunktionen wie malloc, free
+#include <ctype.h>    // Für Zeichenprüfung: isprint()
+#include <string.h>   // Für Zeichenkettenfunktionen wie strncpy, fgets
 
-// Funktion: Wandelt ein Byte in eine 8-stellige Binärdarstellung als String
-// Beispiel: 0x41 (65 dezimal) → "01000001"
+// Funktion: Wandelt ein Byte in eine 8-stellige Binär-Zeichenkette um
 void byte_to_binary(unsigned char byte, char *bin_str) {
     for (int i = 7; i >= 0; i--) {
-        // prüft jedes Bit von rechts nach links und setzt '1' oder '0' im String
+        // Prüfe jedes Bit von links nach rechts
         bin_str[7 - i] = (byte & (1 << i)) ? '1' : '0';
     }
-    bin_str[8] = '\0';  // String korrekt abschließen
+    bin_str[8] = '\0';  // Zeichenkette beenden
 }
 
-// Funktion: Erlaubt dem Benutzer, ein einzelnes Byte im Speicher zu bearbeiten
+// Funktion: Benutzer kann ein Byte im Speicher ändern
 void bearbeiten(unsigned char *daten, int groesse) {
-    int pos, wert;
+    int position;
+    int neuer_wert;
 
-    // Position des zu ändernden Bytes abfragen
-    printf("\nWelche Position möchtest du ändern (0-%d)? ", groesse - 1);
-    scanf("%d", &pos);
-
-    // Prüfen, ob die Eingabe im gültigen Bereich liegt
-    if (pos < 0 || pos >= groesse) {
+    // Benutzer wählt Position (0 bis Dateigröße - 1)
+    printf("\nWelche Position möchtest du ändern (0 bis %d)? ", groesse - 1);
+    if (scanf("%d", &position) != 1 || position < 0 || position >= groesse) {
         printf("Ungültige Position.\n");
+        while (getchar() != '\n'); // Eingabepuffer leeren
         return;
     }
 
-    // Benutzer gibt neuen Byte-Wert im HEX-Format ein (z. B. 0x41 für 'A')
-    printf("Neuer HEX-Wert für Position %d (z.B. 41 für 'A'): 0x", pos);
-    scanf("%x", &wert);
-
-    // Neuer Wert wird im Speicher (im Array) gesetzt
-    daten[pos] = (unsigned char)wert;
-
-    // Bestätigung anzeigen
-    printf("Geändert: Position %d = 0x%02X\n", pos, daten[pos]);
-}
-
-// Hauptprogramm – Einstiegspunkt in C
-int main(int argc, char *argv[]) {
-    // Prüfen, ob ein Dateiname übergeben wurde
-    if (argc < 2) {
-        printf("./editor test.txt\n");
-        return 1;
+    // Benutzer gibt neuen HEX-Wert ein (z. B. 41 für 'A')
+    printf("Gib den neuen HEX-Wert ein (z.B. 41 für 'A'): 0x");
+    if (scanf("%x", &neuer_wert) != 1 || neuer_wert < 0 || neuer_wert > 255) {
+        printf("Ungültiger HEX-Wert.\n");
+        while (getchar() != '\n');
+        return;
     }
 
-    // Datei im Lese-/Schreibmodus öffnen 
-    FILE *datei = fopen(argv[1], "read_binary_write");
+    // Wert wird im Speicher geändert
+    daten[position] = (unsigned char)neuer_wert;
+    printf("Byte an Position %d wurde geändert auf: 0x%02X\n", position, daten[position]);
+}
+
+// Hauptfunktion: Startpunkt des Programms
+int main(int argc, char *argv[]) {
+    char dateiname[256];  // Hier wird der Dateiname gespeichert
+
+    // Wenn der Dateiname beim Start mitgegeben wurde
+    if (argc >= 2) {
+        strncpy(dateiname, argv[1], sizeof(dateiname) - 1);
+        dateiname[sizeof(dateiname) - 1] = '\0';
+    } else {
+        // Sonst fragt das Programm nach dem Dateinamen
+        printf("Gib den Dateinamen ein: ");
+        if (fgets(dateiname, sizeof(dateiname), stdin) == NULL) {
+            printf("Fehler bei der Eingabe.\n");
+            return 1;
+        }
+        dateiname[strcspn(dateiname, "\n")] = '\0';  // Zeilenumbruch entfernen
+    }
+
+    // Datei im Lese- und Schreibmodus öffnen
+    FILE *datei = fopen(dateiname, "rb+");
     if (!datei) {
         printf("Datei konnte nicht geöffnet werden.\n");
         return 1;
     }
 
-    // Dateigröße ermitteln: ans Ende springen, Position abfragen, zurück zum Anfang
+    // Dateigröße ermitteln
     fseek(datei, 0, SEEK_END);
-    int groesse = ftell(datei);
+    int dateigroesse = ftell(datei);
     rewind(datei);
 
-    // Dynamischen Speicher reservieren, um Datei in ein Array zu laden
-    unsigned char *daten = malloc(groesse);
+    // Speicher reservieren für den Inhalt der Datei
+    unsigned char *daten = malloc(dateigroesse);
     if (!daten) {
-        printf("Speicherfehler.\n");
+        printf("Fehler beim Speicher reservieren.\n");
         fclose(datei);
         return 1;
     }
 
-    // Datei in das Array einlesen
-    fread(daten, 1, groesse, datei);
+    // Datei wird in den Speicher gelesen
+    fread(daten, 1, dateigroesse, datei);
 
-    // Dateiinhalt in tabellarischer Form anzeigen: Offset, HEX, Binär, Zeichen
+    // Inhalt der Datei anzeigen: Position, HEX, Binär, Zeichen
     printf("\nOffset  HEX  BIN       CHAR\n-----------------------------\n");
-    for (int i = 0; i < groesse; i++) {
-        char bin[9];  // 8 Zeichen + Nullterminierung
-        byte_to_binary(daten[i], bin);  // Binärdarstellung erzeugen
-
-        // Offset = Speicherposition in HEX
-        // HEX-Wert = zweistellig
-        // Binärwert = 8 Zeichen
-        // Zeichen = falls druckbar, sonst '.'
-        printf("%06X  %02X   %s   %c\n", i, daten[i], bin, isprint(daten[i]) ? daten[i] : '.');
+    for (int i = 0; i < dateigroesse; i++) {
+        char bin_str[9];
+        byte_to_binary(daten[i], bin_str);  // Binärdarstellung erzeugen
+        char zeichen = isprint(daten[i]) ? daten[i] : '.';  // Nur druckbare Zeichen anzeigen
+        printf("%06X  %02X   %s   %c\n", i, daten[i], bin_str, zeichen);
     }
 
-    // Benutzer fragen, ob er ein Byte bearbeiten will
+    // Nach Bearbeitung fragen (mehrfach möglich)
     char antwort;
-    printf("\nByte bearbeiten? (j/n): ");
-    scanf(" %c", &antwort);
+    do {
+        printf("\nMöchtest du ein Byte bearbeiten? (j/n): ");
+        scanf(" %c", &antwort);
+        if (antwort == 'j' || antwort == 'J') {
+            bearbeiten(daten, dateigroesse);  // Bearbeitungsfunktion aufrufen
+        }
+    } while (antwort == 'j' || antwort == 'J');
 
-    if (antwort == 'j' || antwort == 'J') {
-        bearbeiten(daten, groesse);          // Byte bearbeiten
-        rewind(datei);                       // Zurück zum Dateianfang
-        fwrite(daten, 1, groesse, datei);    // Änderungen speichern
-        printf("Datei gespeichert.\n");
-    }
+    // Datei wird mit den neuen Daten überschrieben
+    rewind(datei);
+    fwrite(daten, 1, dateigroesse, datei);
+    printf("Datei wurde gespeichert.\n");
 
-    // Speicher und Datei wieder freigeben
+    // Speicher freigeben und Datei schließen
     free(daten);
     fclose(datei);
     return 0;
