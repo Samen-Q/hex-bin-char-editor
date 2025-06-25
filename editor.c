@@ -38,7 +38,7 @@ void bearbeiten(unsigned char *daten, int groesse) {
     printf("Byte an Position %d wurde geändert auf: 0x%02X\n", position, daten[position]);
 }
 
-// Hauptfunktion: Startpunkt des Programms
+// Hauptfunktion
 int main(int argc, char *argv[]) {
     char dateiname[256];  // Hier wird der Dateiname gespeichert
 
@@ -64,8 +64,13 @@ int main(int argc, char *argv[]) {
     }
 
     // Dateigröße ermitteln
-    fseek(datei, 0, SEEK_END);
-    int dateigroesse = ftell(datei);
+    // Schritt 1: Springe ans Ende der Datei
+    fseek(datei, 0, SEEK_END);  // Das setzt den Dateizeiger ans Ende, um die Gesamtgröße zu messen
+
+    // Schritt 2: Ermittle die aktuelle Position des Dateizeigers (am Ende)
+    int dateigroesse = ftell(datei);    // Diese Position entspricht der Dateigröße in Bytes
+
+    // Schritt 3: Setze den Dateizeiger wieder zurück an den Anfang
     rewind(datei);
 
     // Speicher reservieren für den Inhalt der Datei
